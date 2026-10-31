@@ -9,7 +9,7 @@
  * Passwords come from .env.local. To use a hosted PostgreSQL instead, set DATABASE_URL and the
  * embedded server is skipped.
  */
-import EmbeddedPostgres from 'embedded-postgres';
+import type EmbeddedPostgres from 'embedded-postgres';
 import pg from 'pg';
 import { existsSync, readFileSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
@@ -156,12 +156,14 @@ async function canConnect(cfg: DbConfig) {
 /** Starts (or reuses) the server, ensures roles, database and schema, and returns a pool for the app role. */
 async function boot(cfg: DbConfig): Promise<pg.Pool> {
   if (cfg.databaseUrl) {
-    return poolWithErrorHandler(new pg.Pool({ connectionString: cfg.databaseUrl, max: 5 }));
+    return poolWithErrorHandler(new pg.Pool({ connectionString: cfg.databaseUrl, ssl: sslFor(cfg.databaseUrl), max: 5 }));
   }
   const viewer = ident(cfg.viewerUser);
   // a server left running by a previous `npm run dev` (or a Vite restart) is simply reused
   if (!(await canConnect(cfg))) {
-    const server = new EmbeddedPostgres({
+    // only local development needs the portable server; hosted deployments use DATABASE_URL
+    const { default: Embedded } = await import('embedded-postgres');
+    const server = new Embedded({
       databaseDir: PG_DIR,
       port: cfg.port,
       user: 'postgres',
@@ -196,6 +198,13 @@ async function boot(cfg: DbConfig): Promise<pg.Pool> {
 export async function migrate(pool: pg.Pool, cfg: DbConfig) {
   await pool.query(SCHEMA);
   if (!cfg.databaseUrl) await pool.query(grants(ident(cfg.viewerUser)));
+}
+
+/** Hosted databases reached over the internet need TLS; a private network URL (e.g. Render's internal one) does not. */
+function sslFor(url: string) {
+  const u = new URL(url);
+  const needs = /sslmode=(require|verify)/.test(u.search) || /\.(render|neon|supabase)\.(com|tech|co)$/.test(u.hostname);
+  return needs ? { rejectUnauthorized: false } : undefined;
 }
 
 /** Idle-client errors (e.g. the database restarting) are logged instead of crashing the dev server. */
@@ -245,7 +254,14 @@ export function database(cfg: DbConfig): Promise<pg.Pool> {
 
 /** Connects with credentials someone typed (used by the /db-viewer page) — real PostgreSQL authentication. */
 export async function viewerClient(cfg: DbConfig, user: string, password: string) {
-  const c = new pg.Client({ host: 'localhost', port: cfg.port, user, password, database: DB_NAME, connectionTimeoutMillis: 3000 });
+  let c: pg.Client;
+  if (cfg.databaseUrl) {
+    // hosted database: same server, credentials typed by the person viewing
+    const url = new URL(cfg.databaseUrl);
+    url.username = encodeURIComponent(user);
+    url.password = encodeURIComponent(password);
+    c = new pg.Client({ connectionString: url.toString(), ssl: sslFor(cfg.databaseUrl), connectionTimeoutMillis: 5000 });
+  } else c = new pg.Client({ host: 'localhost', port: cfg.port, user, password, database: DB_NAME, connectionTimeoutMillis: 3000 });
   c.on('error', () => undefined);
   await c.connect();
   return c;

@@ -35,6 +35,17 @@ The database starts empty; create an account with Register.
    else English; listens with browser speech recognition; replies with speech synthesis where a voice is installed;
    understands language, category, location, age, land, study level and requested benefit from one sentence
 
+## Deployment (GitHub → Render + Vercel)
+
+- **Backend + database on Render** — `render.yaml` is a Blueprint: Render dashboard → *New* → *Blueprint* → this repo.
+  It creates the `schemesaathi-api` Node service (`npm run build:server`, `npm start`) and the `schemesaathi-db`
+  PostgreSQL database, and links them through `DATABASE_URL`. Enter `GEMINI_API_KEY` when Render asks for it.
+- **Website on Vercel** — import this repo; `vercel.json` builds the site and forwards `/api/*` and `/db-viewer`
+  to the Render service, so the browser only talks to the Vercel domain. If Render gives the service a different
+  address, update the two URLs in `vercel.json`.
+- Every push to `main` redeploys both. Render's free plan sleeps after ~15 minutes without traffic (the first
+  request then takes about a minute), and its free PostgreSQL database expires after 30 days unless upgraded.
+
 ## Backend (`server/`)
 
 | Route | Purpose |

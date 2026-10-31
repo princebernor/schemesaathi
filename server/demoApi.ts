@@ -251,7 +251,8 @@ function table(title: string, rows: Json[]) {
     .join('')}</tbody></table></div>`;
 }
 async function dbViewer(req: Req, res: ServerResponse, cfg: DbConfig) {
-  if (!isLocal(req)) {
+  // locally only on this computer; a hosted deployment serves it over HTTPS behind real database authentication
+  if (!isLocal(req) && !cfg.databaseUrl) {
     res.statusCode = 403;
     return res.end('The database viewer is only available on this computer.');
   }
@@ -442,8 +443,13 @@ async function handle(req: Req, res: ServerResponse, next: () => void, ai: AICon
   }
 }
 
+/** The API as a plain Node request handler, used by the Vite plugin below and by server/standalone.ts in production. */
+export function createApiHandler(ai: AIConfig, cfg: DbConfig): Connect.NextHandleFunction {
+  return (req, res, next) => void handle(req as Req, res, next, ai, cfg);
+}
+
 export default function demoApi(ai: AIConfig = {}, cfg: DbConfig): Plugin {
-  const mw: Connect.NextHandleFunction = (req, res, next) => void handle(req as Req, res, next, ai, cfg);
+  const mw = createApiHandler(ai, cfg);
   return {
     name: 'schemesaathi-demo-api',
     configureServer(server) {
