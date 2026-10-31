@@ -1,4 +1,5 @@
 import type { Lang } from '../types';
+import { enAccount, hiAccount, taAccount } from './accountStrings';
 
 export const LANGUAGES: { code: Lang; label: string; english: string; full: boolean }[] = [
   { code: 'en', label: 'English', english: 'English', full: true },
@@ -7,9 +8,16 @@ export const LANGUAGES: { code: Lang; label: string; english: string; full: bool
   { code: 'te', label: 'తెలుగు', english: 'Telugu', full: false },
   { code: 'kn', label: 'ಕನ್ನಡ', english: 'Kannada', full: false },
   { code: 'ml', label: 'മലയാളം', english: 'Malayalam', full: false },
+  { code: 'bn', label: 'বাংলা', english: 'Bengali', full: false },
+  { code: 'mr', label: 'मराठी', english: 'Marathi', full: false },
+  { code: 'gu', label: 'ગુજરાતી', english: 'Gujarati', full: false },
+  { code: 'pa', label: 'ਪੰਜਾਬੀ', english: 'Punjabi', full: false },
+  { code: 'or', label: 'ଓଡ଼ିଆ', english: 'Odia', full: false },
+  { code: 'as', label: 'অসমীয়া', english: 'Assamese', full: false },
+  { code: 'ur', label: 'اردو', english: 'Urdu', full: false },
 ];
 
-const en = {
+const enBase = {
   appName: 'SchemeSaathi',
   appTagline: 'Your Personalized Government Benefits Assistant',
   demoBanner: 'Prototype with demonstration data. Always confirm details on the official government portal before applying.',
@@ -314,6 +322,8 @@ const en = {
   ready: 'ready',
   category: 'Category',
 };
+
+const en = { ...enBase, ...enAccount };
 
 export type StringKey = keyof typeof en;
 type Dict = Partial<Record<StringKey, string>>;
@@ -635,5 +645,52 @@ const ml: Dict = {
   allowLocation: 'ലൊക്കേഷൻ അനുവദിക്കുക', selectManually: 'ലൊക്കേഷൻ സ്വയം തിരഞ്ഞെടുക്കുക', yes: 'അതെ', no: 'ഇല്ല',
 };
 
-export const DICTS: Record<Lang, Dict> = { en, ta, hi, te, kn, ml };
+const bn: Dict = {
+  appTagline: 'আপনার ব্যক্তিগত সরকারি সুবিধা সহায়ক',
+  navHome: 'হোম', navSchemes: 'প্রকল্প', navCompare: 'তুলনা', navSaved: 'সংরক্ষিত', navChecklist: 'চেকলিস্ট', navProfile: 'আমার প্রোফাইল',
+  notifications: 'বিজ্ঞপ্তি', language: 'ভাষা', state: 'রাজ্য', district: 'জেলা', continue: 'চালিয়ে যান', next: 'পরবর্তী', previous: 'পূর্ববর্তী',
+  dashHello: 'আপনি কোন বিভাগ হিসেবে সুবিধা খুঁজছেন?', viewDetails: 'বিস্তারিত দেখুন', save: 'সংরক্ষণ', filters: 'ফিল্টার', yes: 'হ্যাঁ', no: 'না',
+  login: 'লগইন', register: 'নিবন্ধন', logout: 'লগআউট', applyNow: 'এখনই আবেদন করুন',
+};
+const mr: Dict = {
+  appTagline: 'तुमचा वैयक्तिक सरकारी लाभ सहाय्यक',
+  navHome: 'मुख्यपृष्ठ', navSchemes: 'योजना', navCompare: 'तुलना', navSaved: 'जतन केलेल्या', navChecklist: 'तपासणी यादी', navProfile: 'माझे प्रोफाइल',
+  notifications: 'सूचना', language: 'भाषा', state: 'राज्य', district: 'जिल्हा', continue: 'पुढे चला', next: 'पुढे', previous: 'मागे',
+  dashHello: 'तुम्ही कोणत्या गटासाठी लाभ शोधत आहात?', viewDetails: 'तपशील पाहा', save: 'जतन करा', filters: 'फिल्टर', yes: 'होय', no: 'नाही',
+  login: 'लॉगिन', register: 'नोंदणी', logout: 'लॉगआउट', applyNow: 'आता अर्ज करा',
+};
+const gu: Dict = {
+  appTagline: 'તમારો વ્યક્તિગત સરકારી લાભ સહાયક',
+  navHome: 'હોમ', navSchemes: 'યોજનાઓ', navCompare: 'સરખામણી', navSaved: 'સાચવેલ', navChecklist: 'ચેકલિસ્ટ', navProfile: 'મારી પ્રોફાઇલ',
+  notifications: 'સૂચનાઓ', language: 'ભાષા', state: 'રાજ્ય', district: 'જિલ્લો', continue: 'આગળ વધો', next: 'આગળ', previous: 'પાછળ',
+  dashHello: 'તમે કઈ શ્રેણી તરીકે લાભ શોધી રહ્યા છો?', viewDetails: 'વિગતો જુઓ', save: 'સાચવો', filters: 'ફિલ્ટર', yes: 'હા', no: 'ના',
+  login: 'લૉગિન', register: 'નોંધણી', logout: 'લૉગઆઉટ', applyNow: 'હમણાં અરજી કરો',
+};
+const pa: Dict = {
+  appTagline: 'ਤੁਹਾਡਾ ਨਿੱਜੀ ਸਰਕਾਰੀ ਲਾਭ ਸਹਾਇਕ',
+  navHome: 'ਮੁੱਖ ਪੰਨਾ', navSchemes: 'ਯੋਜਨਾਵਾਂ', navCompare: 'ਤੁਲਨਾ', navSaved: 'ਸੰਭਾਲੀਆਂ', navChecklist: 'ਚੈੱਕਲਿਸਟ', navProfile: 'ਮੇਰੀ ਪ੍ਰੋਫਾਈਲ',
+  notifications: 'ਸੂਚਨਾਵਾਂ', language: 'ਭਾਸ਼ਾ', state: 'ਰਾਜ', district: 'ਜ਼ਿਲ੍ਹਾ', continue: 'ਜਾਰੀ ਰੱਖੋ', next: 'ਅੱਗੇ', previous: 'ਪਿੱਛੇ',
+  dashHello: 'ਤੁਸੀਂ ਕਿਸ ਸ਼੍ਰੇਣੀ ਵਜੋਂ ਲਾਭ ਲੱਭ ਰਹੇ ਹੋ?', viewDetails: 'ਵੇਰਵੇ ਵੇਖੋ', save: 'ਸੰਭਾਲੋ', filters: 'ਫਿਲਟਰ', yes: 'ਹਾਂ', no: 'ਨਹੀਂ',
+  login: 'ਲੌਗਇਨ', register: 'ਰਜਿਸਟਰ', logout: 'ਲੌਗਆਉਟ', applyNow: 'ਹੁਣੇ ਅਰਜ਼ੀ ਦਿਓ',
+};
+const or: Dict = {
+  appTagline: 'ଆପଣଙ୍କ ବ୍ୟକ୍ତିଗତ ସରକାରୀ ସୁବିଧା ସହାୟକ',
+  navHome: 'ମୂଳପୃଷ୍ଠା', navSchemes: 'ଯୋଜନା', navCompare: 'ତୁଳନା', navSaved: 'ସଞ୍ଚିତ', navChecklist: 'ଚେକଲିଷ୍ଟ', navProfile: 'ମୋ ପ୍ରୋଫାଇଲ',
+  notifications: 'ବିଜ୍ଞପ୍ତି', language: 'ଭାଷା', state: 'ରାଜ୍ୟ', district: 'ଜିଲ୍ଲା', continue: 'ଜାରି ରଖନ୍ତୁ', next: 'ପରବର୍ତ୍ତୀ', previous: 'ପୂର୍ବବର୍ତ୍ତୀ',
+  viewDetails: 'ବିବରଣୀ ଦେଖନ୍ତୁ', save: 'ସଞ୍ଚୟ କରନ୍ତୁ', yes: 'ହଁ', no: 'ନା', login: 'ଲଗଇନ', register: 'ପଞ୍ଜୀକରଣ', logout: 'ଲଗଆଉଟ',
+};
+const as: Dict = {
+  appTagline: 'আপোনাৰ ব্যক্তিগত চৰকাৰী সুবিধা সহায়ক',
+  navHome: 'মুখপৃষ্ঠা', navSchemes: 'আঁচনি', navCompare: 'তুলনা', navSaved: 'সংৰক্ষিত', navChecklist: 'চেকলিষ্ট', navProfile: 'মোৰ প্ৰফাইল',
+  notifications: 'জাননী', language: 'ভাষা', state: 'ৰাজ্য', district: 'জিলা', continue: 'আগবাঢ়ক', next: 'পৰৱৰ্তী', previous: 'পূৰ্বৱৰ্তী',
+  viewDetails: 'বিৱৰণ চাওক', save: 'সংৰক্ষণ', yes: 'হয়', no: 'নহয়', login: 'লগইন', register: 'পঞ্জীয়ন', logout: 'লগআউট',
+};
+const ur: Dict = {
+  appTagline: 'آپ کا ذاتی سرکاری فوائد معاون',
+  navHome: 'ہوم', navSchemes: 'اسکیمیں', navCompare: 'موازنہ', navSaved: 'محفوظ', navChecklist: 'چیک لسٹ', navProfile: 'میری پروفائل',
+  notifications: 'اطلاعات', language: 'زبان', state: 'ریاست', district: 'ضلع', continue: 'جاری رکھیں', next: 'آگے', previous: 'پیچھے',
+  viewDetails: 'تفصیلات دیکھیں', save: 'محفوظ کریں', yes: 'ہاں', no: 'نہیں', login: 'لاگ اِن', register: 'رجسٹر', logout: 'لاگ آؤٹ',
+};
+
+export const DICTS: Record<Lang, Dict> = { en, ta: { ...ta, ...taAccount }, hi: { ...hi, ...hiAccount }, te, kn, ml, bn, mr, gu, pa, or, as, ur };
 export const EN = en;

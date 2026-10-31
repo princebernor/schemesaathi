@@ -5,6 +5,8 @@
  * statement is tagged with a certainty level. To connect a real model later, implement `AIProvider`
  * (e.g. calling your backend which calls an LLM with the scheme JSON as grounding) and swap `ai` below.
  */
+import { remoteAI } from './remoteAI';
+import { translateSync } from './translator';
 import { SCHEMES } from '../data/schemes';
 import { categoryById } from '../data/categories';
 import type { AIStatement, Lang, Profile, Scheme } from '../types';
@@ -31,7 +33,8 @@ export interface AIProvider {
 
 const wait = (ms = 450) => new Promise((r) => setTimeout(r, ms));
 const T = (lang: Lang) => (en: string, ta: string) => (lang === 'ta' ? ta : en);
-const tx = (lang: Lang, v: { en: string; ta: string }) => (lang === 'ta' ? v.ta : v.en);
+// Tamil text when written by hand, otherwise the cached machine translation (or English while it loads)
+const tx = (lang: Lang, v: { en: string; ta: string }) => (lang === 'en' ? v.en : lang === 'ta' && v.ta ? v.ta : translateSync(lang, v.en) ?? v.en);
 /** UI label for a dictionary key in the given language (falls back to English). */
 const label = (lang: Lang, key: StringKey) => DICTS[lang][key] ?? EN[key];
 
@@ -52,7 +55,7 @@ function recommendSync(s: Scheme, p: Profile, lang: Lang): AIStatement[] {
   if (p.category && s.categories.includes(p.category)) {
     out.push(e(t(`It is designed for people in the “${catName(p, lang)}” category, which you selected.`, `நீங்கள் தேர்வு செய்த “${catName(p, lang)}” பிரிவினருக்காக இது வடிவமைக்கப்பட்டுள்ளது.`)));
   }
-  if (s.level === 'state' && p.state === s.state) {
+  if (s.level !== 'central' && p.state === s.state) {
     out.push(e(t(`It is a ${s.state} Government scheme and you live in ${p.district ? p.district + ', ' : ''}${s.state}.`, `இது ${s.state} அரசுத் திட்டம்; நீங்கள் ${p.district ? p.district + ', ' : ''}${s.state}-இல் வசிக்கிறீர்கள்.`)));
   } else if (s.level === 'central') {
     out.push(c(t('As a Central Government scheme it is available in every state.', 'மத்திய அரசுத் திட்டம் என்பதால் அனைத்து மாநிலங்களிலும் கிடைக்கும்.')));
@@ -276,5 +279,9 @@ export const mockAI: AIProvider = {
   howHelps: async (s, p, l) => (await wait(500), howHelpsSync(s, p, l)),
 };
 
-export const ai: AIProvider = mockAI;
+/** Live provider: free-form questions go to Gemini (server-side key); everything else stays deterministic. */
+export const ai: AIProvider = {
+  ...mockAI,
+  chat: async (q, s, p, l) => (await remoteAI.chat(q, s?.id ?? null, p, l)) ?? mockAI.chat(q, s, p, l),
+};
 export { requirementsText };

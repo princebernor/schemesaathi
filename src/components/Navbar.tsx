@@ -1,10 +1,11 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
-import { Bell, BookmarkCheck, ClipboardCheck, GitCompareArrows, Home, Languages, LayoutList, MapPin, Menu, UserRound, X } from 'lucide-react';
+import { Bell, BookmarkCheck, ClipboardCheck, GitCompareArrows, Home, Languages, LayoutList, LogIn, MapPin, Menu, UserRound, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useStore } from '../state/store';
 import { LANGUAGES } from '../i18n/strings';
 import { schemeById } from '../data/schemes';
 import type { Lang } from '../types';
+import { noticeText } from './Applications';
 
 export function Logo() {
   const { t } = useStore();
@@ -25,35 +26,43 @@ export function Logo() {
 
 /** Demonstration notifications derived from saved schemes and checklist. */
 function useNotifications() {
-  const { saved, checklist, lang } = useStore();
+  const { saved, checklist, lang, notices, t, tx, tr } = useStore();
   return useMemo(() => {
     const ta = lang === 'ta';
-    const list: { id: string; text: string; href: string; when: string }[] = [];
+    const list: { id: string; text: string; href: string; when: string; status?: string; read?: boolean }[] = [];
+    // application status updates first (simulated in the prototype, labelled as such)
+    notices.forEach((n) =>
+      list.push({ id: n.id, status: n.status, read: n.read, href: `#/checklist/${n.schemeId}`, when: `${new Date(n.at).toLocaleString(lang === 'en' ? 'en-IN' : `${lang}-IN`, { dateStyle: 'medium', timeStyle: 'short' })} · ${t('demoNotice')}`, text: noticeText(n, t, tx) }),
+    );
     saved.forEach((id) => {
       const s = schemeById(id);
       if (!s) return;
       if (s.deadline)
-        list.push({ id: `dl-${id}`, href: `#/scheme/${id}`, when: ta ? 'மாதிரி' : 'Demo', text: ta ? `${s.name.ta}: விண்ணப்பக் காலம் — ${s.deadline}` : `${s.name.en}: application window — ${s.deadline}` });
+        list.push({ id: `dl-${id}`, href: `#/scheme/${id}`, when: ta ? 'மாதிரி' : 'Demo', text: ta ? `${tx(s.name)}: விண்ணப்பக் காலம் — ${s.deadline}` : `${s.name.en}: application window — ${s.deadline}` });
       else if (s.status === 'check')
-        list.push({ id: `st-${id}`, href: `#/scheme/${id}`, when: ta ? 'மாதிரி' : 'Demo', text: ta ? `${s.name.ta}: விண்ணப்ப நிலையைச் சரிபார்க்கவும்` : `${s.name.en}: application status may have changed — check the portal` });
-      else list.push({ id: `up-${id}`, href: `#/scheme/${id}`, when: s.updatedAt, text: ta ? `${s.name.ta} தகவல் புதுப்பிக்கப்பட்டது` : `${s.name.en} information was updated` });
+        list.push({ id: `st-${id}`, href: `#/scheme/${id}`, when: ta ? 'மாதிரி' : 'Demo', text: ta ? `${tx(s.name)}: விண்ணப்ப நிலையைச் சரிபார்க்கவும்` : `${s.name.en}: application status may have changed — check the portal` });
+      else list.push({ id: `up-${id}`, href: `#/scheme/${id}`, when: s.updatedAt, text: ta ? `${tx(s.name)} தகவல் புதுப்பிக்கப்பட்டது` : `${s.name.en} information was updated` });
     });
     Object.entries(checklist).forEach(([id, done]) => {
       const s = schemeById(id);
       if (s && done.length < s.documents.length)
-        list.push({ id: `ck-${id}-${done.length}`, href: '#/checklist', when: ta ? 'நினைவூட்டல்' : 'Reminder', text: ta ? `${s.name.ta}: ${s.documents.length - done.length} ஆவணங்கள் இன்னும் தயாராகவில்லை` : `${s.name.en}: ${s.documents.length - done.length} documents still to collect` });
+        list.push({ id: `ck-${id}-${done.length}`, href: '#/checklist', when: ta ? 'நினைவூட்டல்' : 'Reminder', text: ta ? `${tx(s.name)}: ${s.documents.length - done.length} ஆவணங்கள் இன்னும் தயாராகவில்லை` : `${s.name.en}: ${s.documents.length - done.length} documents still to collect` });
     });
     list.push({ id: 'welcome', href: '#/schemes', when: ta ? 'மாதிரி' : 'Demo', text: ta ? 'திட்டசாத்திக்கு வரவேற்கிறோம்! திட்டங்களைச் சேமித்தால் கடைசி தேதி நினைவூட்டல்கள் இங்கே வரும்.' : 'Welcome! Save schemes to get deadline reminders here.' });
-    return list;
-  }, [saved, checklist, lang]);
+    // English reminder texts are machine-translated for languages other than English and Tamil
+    return ta ? list : list.map((n) => (n.status ? n : { ...n, text: tr(n.text), when: tr(n.when) }));
+  }, [saved, checklist, lang, notices, t, tx, tr]);
 }
 
 export default function Navbar() {
-  const { t, route, lang, setLang, location, setLocationModal, compare, saved, notifRead, setNotifRead } = useStore();
+  const { t, route, lang, setLang, location, setLocationModal, compare, saved, notifRead, setNotifRead, markNoticesRead, user, profile } = useStore();
   const [menu, setMenu] = useState(false);
   const [bell, setBell] = useState(false);
   const notes = useNotifications();
-  const unread = notes.filter((n) => !notifRead.includes(n.id)).length;
+  const isRead = (n: (typeof notes)[number]) => (n.status ? !!n.read : notifRead.includes(n.id));
+  const unread = notes.filter((n) => !isRead(n)).length;
+  const authHref = user ? '#/account' : `#/auth/${profile.category ?? ''}/login`;
+  const initials = user?.fullName.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
   const bellRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -99,7 +108,7 @@ export default function Navbar() {
               {LANGUAGES.map((l) => (
                 <option key={l.code} value={l.code}>
                   {l.label}
-                  {l.full ? '' : ' (demo)'}
+                  {l.full ? '' : ' · AI'}
                 </option>
               ))}
             </select>
@@ -114,12 +123,12 @@ export default function Navbar() {
                 <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="absolute right-0 mt-2 w-[min(360px,calc(100vw-24px))] card p-0 overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
                     <span className="font-semibold">{t('notifications')}</span>
-                    <button className="text-sm text-navy-600 hover:underline" onClick={() => setNotifRead(notes.map((n) => n.id))}>{t('markAllRead')}</button>
+                    <button className="text-sm text-navy-600 hover:underline" onClick={() => { setNotifRead(notes.filter((n) => !n.status).map((n) => n.id)); markNoticesRead(); }}>{t('markAllRead')}</button>
                   </div>
                   <ul className="max-h-[360px] overflow-y-auto scrollbar-thin">
                     {notes.map((n) => (
                       <li key={n.id}>
-                        <a href={n.href} onClick={() => { setBell(false); setNotifRead([...new Set([...notifRead, n.id])]); }} className={`block px-4 py-3 text-sm border-b border-slate-50 hover:bg-slate-50 ${notifRead.includes(n.id) ? 'text-slate-500' : 'text-slate-800 bg-navy-50/40'}`}>
+                        <a href={n.href} onClick={() => { setBell(false); if (n.status) markNoticesRead([n.id]); else setNotifRead([...new Set([...notifRead, n.id])]); }} className={`block px-4 py-3 text-sm border-b border-slate-50 hover:bg-slate-50 ${isRead(n) ? 'text-slate-500' : 'text-slate-800 bg-navy-50/40'} ${n.status === 'approved' || n.status === 'disbursed' ? 'border-l-4 border-l-leaf-500' : n.status === 'rejected' ? 'border-l-4 border-l-red-400' : ''}`}>
                           {n.text}
                           <span className="block text-[11px] text-slate-400 mt-0.5">{n.when}</span>
                         </a>
@@ -130,9 +139,15 @@ export default function Navbar() {
               )}
             </AnimatePresence>
           </div>
-          <a href="#/me" className={`hidden sm:grid place-items-center w-10 h-10 rounded-full ${route.name === 'me' ? 'bg-navy-600 text-white' : 'bg-navy-50 text-navy-700 hover:bg-navy-100'}`} aria-label={t('navProfile')}>
-            <UserRound size={20} />
-          </a>
+          {user ? (
+            <a href="#/account" className={`grid place-items-center w-10 h-10 rounded-full font-bold text-sm ${route.name.startsWith('account') ? 'bg-navy-700 text-white ring-2 ring-navy-200' : 'bg-navy-600 text-white hover:bg-navy-700'}`} aria-label={t('myDashboard')} title={`${user.fullName} · ${t('myDashboard')}`}>
+              {initials}
+            </a>
+          ) : (
+            <a href={authHref} className="btn-primary btn-sm whitespace-nowrap" aria-label={t('login')}>
+              <LogIn size={16} /> <span className="hidden sm:inline">{t('login')}</span>
+            </a>
+          )}
           <button className="xl:hidden p-2 rounded-lg hover:bg-slate-100" onClick={() => setMenu((m) => !m)} aria-label="Menu" aria-expanded={menu}>
             {menu ? <X size={22} /> : <Menu size={22} />}
           </button>
@@ -142,7 +157,7 @@ export default function Navbar() {
         {menu && (
           <motion.nav initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="xl:hidden overflow-hidden border-t border-slate-100 bg-white">
             <div className="px-4 py-3 grid gap-1">
-              {[...links, { href: '#/me', name: 'me', label: t('navProfile'), icon: UserRound, count: 0 }].map((l) => (
+              {[...links, { href: '#/me', name: 'me', label: t('navProfile'), icon: UserRound, count: 0 }, { href: authHref, name: user ? 'account' : 'auth', label: user ? t('myDashboard') : t('login'), icon: user ? UserRound : LogIn, count: 0 }].map((l) => (
                 <a key={l.href} href={l.href} onClick={() => setMenu(false)} className={`flex items-center gap-3 px-3 py-3 rounded-xl font-medium ${active(l.name) ? 'bg-navy-50 text-navy-700' : 'text-slate-700'}`}>
                   <l.icon size={20} /> {l.label}
                   {!!l.count && <span className="chip bg-navy-600 text-white">{l.count}</span>}

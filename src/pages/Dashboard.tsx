@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, Check, Clock, LayoutList, MapPin } from 'lucide-react';
+import { ArrowRight, Check, Clock, LayoutDashboard, LayoutList, MapPin } from 'lucide-react';
 import Character from '../components/Character';
 import { CATEGORIES, type Category } from '../data/categories';
 import { SCHEMES, schemeById } from '../data/schemes';
@@ -61,7 +61,7 @@ function CategoryCard({ c, active, count, onEnter, onLeave, onSelect, offset = 0
 }
 
 export default function Dashboard() {
-  const { t, tx, location, profile, updateProfile, navigate, recent, setLocationModal } = useStore();
+  const { t, tx, location, profile, updateProfile, navigate, recent, setLocationModal, user } = useStore();
   const [hover, setHover] = useState<{ id: CategoryId; rect: DOMRect } | null>(null);
   const [tapped, setTapped] = useState<CategoryId | null>(null);
   const noHover = useNoHover();
@@ -72,7 +72,10 @@ export default function Dashboard() {
     return m;
   }, [location]);
 
+  // guests go to the category's Login / Register page; signed-in users keep their account
   const select = (id: CategoryId) => {
+    if (!user) return navigate(`/auth/${id}/login`);
+    if (user.category === id) return navigate('/account');
     if (profile.category !== id) updateProfile({ category: id, completed: false });
     navigate('/profile-setup');
   };
@@ -107,6 +110,11 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 py-6 lg:py-10">
+      {user && (
+        <a href="#/account" className="mx-auto mb-5 flex w-fit items-center gap-2 rounded-full bg-navy-600 text-white pl-3 pr-4 py-1.5 text-sm font-semibold shadow-sm hover:bg-navy-700">
+          <LayoutDashboard size={16} /> {t('welcomeBack', { name: user.fullName.split(' ')[0] })} · {t('goDashboard')} <ArrowRight size={15} />
+        </a>
+      )}
       <div className="text-center max-w-2xl mx-auto mb-6 lg:mb-10">
         <button onClick={() => setLocationModal(true)} className="chip bg-leaf-50 text-leaf-700 border border-leaf-100 mb-3 py-1 px-3 text-sm">
           <MapPin size={14} /> {location ? `${location.district}, ${location.state}` : t('changeLocation')}
@@ -134,7 +142,7 @@ export default function Dashboard() {
         </div>
         <Bubble active={active} tx={tx} t={t} />
         {tapped && (
-          <div className="sticky bottom-3 z-30 mt-3 flex justify-center">
+          <div className="sticky bottom-20 z-30 mt-3 flex justify-center">
             <button className="btn-green shadow-lift px-6 py-3 text-base" onClick={() => select(tapped)}>
               {t('continue')}: {tx(CATEGORIES.find((c) => c.id === tapped)!.name)} <ArrowRight size={18} />
             </button>

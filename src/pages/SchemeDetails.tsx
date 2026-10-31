@@ -7,11 +7,13 @@ import { matchScheme } from '../lib/matching';
 import { useStore } from '../state/store';
 import { AIThinking, CertaintyLegend, LevelBadge, MatchBadge, Modal, Section, StatusBadge, Statements } from '../components/ui';
 import AIPanel from '../components/AIPanel';
+import { ApplyDialog, StatusPill } from '../components/Applications';
 import type { AIStatement } from '../types';
 import type { StringKey } from '../i18n/strings';
 
 export default function SchemeDetails({ id }: { id: string }) {
-  const { t, tx, lang, profile, saved, toggleSaved, compare, toggleCompare, checklist, addToChecklist, pushRecent } = useStore();
+  const { t, tx, lang, profile, saved, toggleSaved, compare, toggleCompare, checklist, addToChecklist, pushRecent, applications } = useStore();
+  const [applying, setApplying] = useState(false);
   const s = schemeById(id);
   const [helps, setHelps] = useState<AIStatement[] | null>(null);
   const [leaving, setLeaving] = useState(false);
@@ -61,6 +63,7 @@ export default function SchemeDetails({ id }: { id: string }) {
               })}
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold leading-tight">{tx(s.name)}</h1>
+            {lang !== 'en' && <p className="text-sm text-slate-500 mt-1" lang="en">{t('officialName')}: {s.name.en}</p>}
             <p className="flex items-center gap-2 text-slate-600 mt-2">
               <Building2 size={17} /> {tx(s.department)}
             </p>
@@ -97,6 +100,18 @@ export default function SchemeDetails({ id }: { id: string }) {
               ) : (
                 <button className="btn-ghost" onClick={() => addToChecklist(s.id)}>
                   <ClipboardCheck size={18} /> {t('addChecklist')}
+                </button>
+              )}
+            </div>
+            {/* applying is tracked separately from saving */}
+            <div className="flex flex-wrap items-center gap-2 mt-3">
+              {applications[s.id] ? (
+                <a href={`#/checklist/${s.id}`} className="inline-flex items-center gap-2 text-sm font-semibold text-navy-700 hover:underline">
+                  <StatusPill status={applications[s.id].status} /> {t('applications')} →
+                </a>
+              ) : (
+                <button className="btn-sm btn border border-leaf-200 text-leaf-700 bg-white hover:bg-leaf-50" onClick={() => setApplying(true)}>
+                  <ClipboardCheck size={16} /> {t('markApplied')}
                 </button>
               )}
             </div>
@@ -187,6 +202,7 @@ export default function SchemeDetails({ id }: { id: string }) {
         </aside>
       </div>
 
+      <ApplyDialog s={s} open={applying} onClose={() => setApplying(false)} />
       <Modal open={leaving} onClose={() => setLeaving(false)} title={t('leavingTitle')}>
         <p className="text-slate-600 leading-relaxed">{t('leavingBody')}</p>
         <p className="mt-3 rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 font-mono text-sm break-all">{s.officialUrl}</p>

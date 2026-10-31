@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Bookmark, CheckCircle2, ClipboardCheck, Clock, Languages, MapPin, Pencil, RotateCcw, Trash2, UserRound } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Bookmark, CheckCircle2, ClipboardCheck, ClipboardList, Clock, ExternalLink, LogIn, Languages, MapPin, Pencil, RotateCcw, Trash2, UserRound } from 'lucide-react';
 import { schemeById, SCHEMES } from '../data/schemes';
 import { categoryById } from '../data/categories';
 import { LANGUAGES, type StringKey } from '../i18n/strings';
@@ -8,6 +8,7 @@ import { useStore } from '../state/store';
 import SchemeCard from '../components/SchemeCard';
 import { LocationStep } from '../components/LocationPicker';
 import { Modal, Section } from '../components/ui';
+import { ApplicationCard, ApplyDialog, StatusPill } from '../components/Applications';
 import type { Lang, Profile } from '../types';
 
 /* ---------------- My Profile ---------------- */
@@ -115,14 +116,27 @@ export function MyProfile() {
 }
 
 /* ---------------- Saved + recently viewed ---------------- */
+function GuestNote() {
+  const { t, user, profile } = useStore();
+  if (user) return null;
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-navy-50 border border-navy-100 px-4 py-3 mb-5 text-sm text-navy-900">
+      <span>{t('guestNote')}</span>
+      <a href={`#/auth/${profile.category ?? ''}/login`} className="btn-primary btn-sm"><LogIn size={15} /> {t('login')}</a>
+    </div>
+  );
+}
+
 export function Saved() {
-  const { t, saved, recent, profile } = useStore();
+  const { t, saved, recent, profile, applications } = useStore();
   const [tab, setTab] = useState<'saved' | 'recent'>('saved');
+  const [applyFor, setApplyFor] = useState<string | null>(null);
   const ids = tab === 'saved' ? saved : recent;
   const list = ids.map(schemeById).filter(Boolean) as typeof SCHEMES;
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 pb-28">
       <h1 className="text-2xl sm:text-3xl font-bold mb-5">{t('savedSchemes')}</h1>
+      <GuestNote />
       <div className="inline-flex rounded-xl bg-slate-100 p-1 mb-5" role="tablist">
         {(['saved', 'recent'] as const).map((k) => (
           <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm ${tab === k ? 'bg-white shadow-sm text-navy-700' : 'text-slate-600'}`}>
@@ -133,24 +147,51 @@ export function Saved() {
       </div>
       <div className="space-y-4">
         {list.map((s) => (
-          <SchemeCard key={s.id} s={s} m={matchScheme(s, profile)} />
+          <div key={s.id}>
+            <SchemeCard s={s} m={matchScheme(s, profile)} />
+            {/* saving is a bookmark; applying is tracked separately */}
+            <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 -mt-3 pt-5 rounded-b-2xl bg-slate-50 border border-t-0 border-slate-200/80">
+              <StatusPill status={applications[s.id]?.status ?? (saved.includes(s.id) ? 'saved' : 'not_applied')} />
+              {!applications[s.id] && saved.includes(s.id) && <StatusPill status="not_applied" />}
+              {applications[s.id] ? (
+                <a href={`#/checklist/${s.id}`} className="btn-sm btn text-navy-700 hover:bg-navy-50 ml-auto"><ClipboardList size={15} /> {t('applications')}</a>
+              ) : (
+                <button className="btn-green btn-sm ml-auto" onClick={() => setApplyFor(s.id)}><ExternalLink size={15} /> {t('applyNow')}</button>
+              )}
+            </div>
+          </div>
         ))}
         {!list.length && <div className="card p-10 text-center text-slate-500">{tab === 'saved' ? t('savedEmpty') : t('recentEmpty')}</div>}
       </div>
+      {applyFor && schemeById(applyFor) && <ApplyDialog s={schemeById(applyFor)!} open onClose={() => setApplyFor(null)} />}
     </div>
   );
 }
 
 /* ---------------- Application checklist ---------------- */
-export function Checklist() {
-  const { t, tx, checklist, toggleChecklistItem, removeFromChecklist } = useStore();
+export function Checklist({ focus }: { focus?: string }) {
+  const { t, tx, checklist, toggleChecklistItem, removeFromChecklist, applications } = useStore();
   const ids = Object.keys(checklist);
+  const apps = Object.values(applications).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  useEffect(() => {
+    if (focus) setTimeout(() => document.getElementById(`app-${focus}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+  }, [focus]);
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
         <ClipboardCheck className="text-navy-600" /> {t('checklistTitle')}
       </h1>
-      <p className="text-slate-600 mt-1 mb-6">{t('checklistSub')}</p>
+      <p className="text-slate-600 mt-1 mb-6">{t('applicationsSub')}</p>
+      <GuestNote />
+
+      <h2 className="text-xl font-bold flex items-center gap-2 mb-3"><ClipboardList size={20} className="text-navy-600" /> {t('applications')} ({apps.length})</h2>
+      <div className="space-y-5 mb-10">
+        {apps.map((a) => <ApplicationCard key={a.schemeId} app={a} highlight={a.schemeId === focus} />)}
+        {!apps.length && <div className="card p-8 text-center text-slate-500">{t('noApplications')}</div>}
+      </div>
+
+      <h2 className="text-xl font-bold flex items-center gap-2"><ClipboardCheck size={20} className="text-leaf-600" /> {t('documentPrep')}</h2>
+      <p className="text-slate-600 mt-1 mb-4">{t('checklistSub')}</p>
       <div className="space-y-5">
         {ids.map((id) => {
           const s = schemeById(id);

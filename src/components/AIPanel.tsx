@@ -18,7 +18,7 @@ function Block({ icon, title, children }: { icon: React.ReactNode; title: string
 
 /** Right-hand AI assistant. All content comes from `ai` (mock today, swappable for a real API). */
 export default function AIPanel({ scheme, visibleIds }: { scheme: Scheme | null; visibleIds: string[] }) {
-  const { t, tx, lang, profile, setLocationModal } = useStore();
+  const { t, tx, tr, lang, profile, setLocationModal } = useStore();
   const [rec, setRec] = useState<AIStatement[] | null>(null);
   const [elig, setElig] = useState<AIStatement[] | null>(null);
   const [sugg, setSugg] = useState<{ scheme: Scheme; reason: string }[] | null>(null);
@@ -114,7 +114,7 @@ export default function AIPanel({ scheme, visibleIds }: { scheme: Scheme | null;
                 <dt className="text-slate-500">{t('reqResidency')}</dt>
                 <dd>
                   {req.residency}
-                  {scheme.level === 'state' && (
+                  {scheme.level !== 'central' && (
                     <button onClick={() => setLocationModal(true)} className="ml-1 text-violet-700 text-xs hover:underline">
                       ({t('changeLocation')})
                     </button>
@@ -141,7 +141,7 @@ export default function AIPanel({ scheme, visibleIds }: { scheme: Scheme | null;
               <li key={s.id}>
                 <a href={`#/scheme/${s.id}`} className="block rounded-xl border border-slate-100 px-3 py-2 hover:border-violet-300 hover:bg-violet-50/50">
                   <div className="text-sm font-semibold text-navy-800 leading-snug">{tx(s.name)}</div>
-                  <div className="text-xs text-slate-500 mt-0.5">{reason}</div>
+                  <div className="text-xs text-slate-500 mt-0.5">{tr(reason)}</div>
                 </a>
               </li>
             ))}

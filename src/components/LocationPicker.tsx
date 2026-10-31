@@ -93,7 +93,7 @@ export function LocationStep({ initial, onDone, submitLabel }: { initial?: Locat
       {geo === 'unknown' && <p className="rounded-xl bg-amber-50 text-amber-900 px-4 py-3 text-sm">{t('locationUnknown')}</p>}
       {geo === 'found' && (
         <p className="rounded-xl bg-leaf-50 text-leaf-700 px-4 py-3 text-sm font-medium flex items-center gap-2">
-          <LocateFixed size={16} /> {t('locationFound')}: {district}, {state}
+          <LocateFixed size={16} /> {t('locationFound')}: {[district, state].filter(Boolean).join(', ')}
         </p>
       )}
       {manual && (

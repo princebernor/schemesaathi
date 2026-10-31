@@ -31,3 +31,17 @@
 }
 .scrollbar-thin::-webkit-scrollbar { width: 6px; }
 .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+/* voice assistant button: animated voice wave + soft pulse */
+.voice-wave { display: inline-flex; align-items: center; gap: 3px; height: 22px; }
+.voice-wave i { display: block; width: 3px; height: 40%; border-radius: 2px; background: currentColor; opacity: .85; animation: voice-wave 1.1s ease-in-out infinite; }
+.voice-wave i:nth-child(2) { animation-delay: .15s; }
+.voice-wave i:nth-child(3) { animation-delay: .3s; }
+.voice-wave i:nth-child(4) { animation-delay: .45s; }
+.voice-wave i:nth-child(5) { animation-delay: .6s; }
+@keyframes voice-wave { 0%, 100% { height: 30%; } 50% { height: 100%; } }
+.animate-ping-slow { animation: ping-slow 2.4s cubic-bezier(0, 0, .2, 1) infinite; }
+@keyframes ping-slow { 0% { transform: scale(1); opacity: .7; } 70%, 100% { transform: scale(1.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .voice-wave i, .animate-ping-slow { animation: none; }
+}

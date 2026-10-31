@@ -8,7 +8,7 @@ import { useStore } from '../state/store';
 import SchemeCard from '../components/SchemeCard';
 import AIPanel from '../components/AIPanel';
 import type { StringKey } from '../i18n/strings';
-import type { AppStatus, BenefitType, CategoryId, IncomeRange } from '../types';
+import type { AppStatus, BenefitType, CategoryId, GovLevel, IncomeRange } from '../types';
 
 const BENEFITS: BenefitType[] = ['cash', 'pension', 'loan', 'subsidy', 'insurance', 'scholarship', 'training', 'housing', 'food', 'health'];
 const STATUSES: AppStatus[] = ['open', 'seasonal', 'check'];
@@ -17,7 +17,7 @@ type Sort = 'relevant' | 'recent' | 'central' | 'state';
 
 interface Filters {
   cats: CategoryId[];
-  level: 'all' | 'central' | 'state';
+  level: 'all' | GovLevel;
   myState: boolean;
   gender: 'any' | 'female' | 'male';
   ageFit: boolean;
@@ -95,7 +95,7 @@ function Drawer({ open, onClose, side, title, children }: { open: boolean; onClo
   );
 }
 
-export default function Discover() {
+export default function Discover({ query }: { query?: string }) {
   const { t, tx, profile, location } = useStore();
   const userState = profile.state ?? location?.state;
   const defaults = (): Filters => ({
@@ -105,7 +105,8 @@ export default function Discover() {
     gender: 'any',
     ageFit: false,
     income: '',
-    benefits: [],
+    // the voice assistant can open this page pre-filtered, e.g. #/schemes?benefit=scholarship
+    benefits: (new URLSearchParams(query).get('benefit')?.split(',') ?? []).filter((b): b is BenefitType => BENEFITS.includes(b as BenefitType)),
     statuses: [],
   });
   const [f, setF] = useState<Filters>(defaults);
@@ -122,7 +123,7 @@ export default function Discover() {
     const filtered = SCHEMES.filter((s) => {
       if (f.cats.length && !s.categories.some((c) => f.cats.includes(c))) return false;
       if (f.level !== 'all' && s.level !== f.level) return false;
-      if (f.myState && !availableIn(s, userState)) return false;
+      if (f.myState && !availableIn(s, userState, profile.district ?? location?.district)) return false;
       if (f.gender !== 'any' && s.rules.gender && s.rules.gender !== f.gender) return false;
       if (f.ageFit && profile.age !== undefined && ((s.rules.minAge ?? 0) > profile.age || (s.rules.maxAge ?? 200) < profile.age)) return false;
       if (f.income && s.rules.maxIncome !== undefined && INCOME_BOUNDS[f.income][0] >= s.rules.maxIncome) return false;
@@ -141,7 +142,7 @@ export default function Discover() {
     const ranked = rankSchemes(filtered, profile);
     if (sort === 'recent') ranked.sort((a, b) => b.scheme.updatedAt.localeCompare(a.scheme.updatedAt));
     if (sort === 'central') ranked.sort((a, b) => Number(b.scheme.level === 'central') - Number(a.scheme.level === 'central'));
-    if (sort === 'state') ranked.sort((a, b) => Number(b.scheme.level === 'state') - Number(a.scheme.level === 'state'));
+    if (sort === 'state') ranked.sort((a, b) => Number(b.scheme.level !== 'central') - Number(a.scheme.level !== 'central'));
     return ranked;
   }, [f, q, sort, profile, userState, t]);
 
@@ -178,9 +179,12 @@ export default function Discover() {
         <Check checked={f.myState} onChange={() => set({ myState: !f.myState })} label={`${t('myStateOnly')}${userState ? ` (${userState})` : ''}`} />
       </FilterGroup>
       <FilterGroup title={t('govLevel')}>
-        {(['all', 'central', 'state'] as const).filter((l) => show(l === 'all' ? t('any') : t(l === 'central' ? 'central' : 'stateGov'))).map((l) => (
-          <Radio key={l} name="level" checked={f.level === l} onChange={() => set({ level: l })} label={l === 'all' ? t('any') : t(l === 'central' ? 'central' : 'stateGov')} />
-        ))}
+        {(['all', 'central', 'state', 'ut', 'district'] as const)
+          .map((l) => [l, t(({ all: 'any', central: 'central', state: 'stateGov', ut: 'utGov', district: 'districtGov' } as const)[l])] as const)
+          .filter(([, label]) => show(label))
+          .map(([l, label]) => (
+            <Radio key={l} name="level" checked={f.level === l} onChange={() => set({ level: l })} label={label} />
+          ))}
       </FilterGroup>
       <FilterGroup title={t('genderElig')} defaultOpen={false}>
         {(['any', 'female', 'male'] as const).map((g) => (

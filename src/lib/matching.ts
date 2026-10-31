@@ -125,8 +125,9 @@ export function matchScheme(s: Scheme, p: Profile): MatchResult {
 export function rankSchemes(schemes: Scheme[], p: Profile) {
   return schemes
     .map((s) => ({ scheme: s, match: matchScheme(s, p) }))
-    .sort((a, b) => b.match.score - a.match.score || (b.scheme.level === 'state' ? 1 : 0) - (a.scheme.level === 'state' ? 1 : 0));
+    .sort((a, b) => b.match.score - a.match.score || (b.scheme.level !== 'central' ? 1 : 0) - (a.scheme.level !== 'central' ? 1 : 0));
 }
 
 /** True when the scheme is offered in the user's state (central schemes always are). */
-export const availableIn = (s: Scheme, state?: string) => s.level === 'central' || !state || s.state === state;
+export const availableIn = (s: Scheme, state?: string, district?: string) =>
+  s.level === 'central' || !state || (s.state === state && (!s.districts?.length || !district || s.districts.includes(district)));

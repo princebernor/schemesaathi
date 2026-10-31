@@ -40,15 +40,21 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
   );
 }
 
+/** Central Government / <State> Government / <UT> Administration (UT) / District-level label. */
+export function levelLabel(s: Scheme, t: ReturnType<typeof useStore>['t'], tr: ReturnType<typeof useStore>['tr']) {
+  const place = tr(s.state);
+  if (s.level === 'central') return t('central');
+  if (s.level === 'ut') return t('levelUT', { s: place });
+  if (s.level === 'district') return t('levelDistrict', { d: (s.districts ?? []).map(tr).join(', '), s: place });
+  return t('levelState', { s: place });
+}
+
 export function LevelBadge({ s }: { s: Scheme }) {
-  const { t } = useStore();
-  return s.level === 'central' ? (
-    <span className="chip bg-navy-50 text-navy-700 border border-navy-100">
-      <Landmark size={12} /> {t('central')}
-    </span>
-  ) : (
-    <span className="chip bg-leaf-50 text-leaf-700 border border-leaf-100">
-      <Landmark size={12} /> {s.state}
+  const { t, tr } = useStore();
+  const cls = { central: 'bg-navy-50 text-navy-700 border-navy-100', state: 'bg-leaf-50 text-leaf-700 border-leaf-100', ut: 'bg-sky-50 text-sky-700 border-sky-100', district: 'bg-amber-50 text-amber-800 border-amber-200' }[s.level];
+  return (
+    <span className={`chip border ${cls}`}>
+      <Landmark size={12} /> {levelLabel(s, t, tr)}
     </span>
   );
 }
@@ -94,13 +100,13 @@ export function CertaintyLegend() {
 }
 
 export function Statements({ items, compact }: { items: AIStatement[]; compact?: boolean }) {
-  const { t } = useStore();
+  const { t, tr } = useStore();
   return (
     <ul className={compact ? 'space-y-1.5' : 'space-y-2'}>
       {items.map((s, i) => (
         <li key={i} className="flex gap-2 text-sm leading-relaxed">
           <span className={`mt-1.5 w-2 h-2 shrink-0 rounded-full ${CERT_STYLE[s.certainty].dot}`} title={t(CERT_STYLE[s.certainty].key)} />
-          <span className={s.certainty === 'verify' ? 'text-amber-900' : ''}>{s.text}</span>
+          <span className={s.certainty === 'verify' ? 'text-amber-900' : ''}>{tr(s.text)}</span>
         </li>
       ))}
     </ul>

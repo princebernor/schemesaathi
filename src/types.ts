@@ -1,4 +1,4 @@
-export type Lang = 'en' | 'ta' | 'hi' | 'te' | 'kn' | 'ml';
+export type Lang = 'en' | 'ta' | 'hi' | 'te' | 'kn' | 'ml' | 'bn' | 'mr' | 'gu' | 'pa' | 'or' | 'as' | 'ur';
 
 export type CategoryId =
   | 'farmer'
@@ -10,7 +10,8 @@ export type CategoryId =
   | 'jobseeker'
   | 'general';
 
-export type GovLevel = 'central' | 'state';
+/** central = all India; state; ut = Union Territory administration; district = only in listed districts. */
+export type GovLevel = 'central' | 'state' | 'ut' | 'district';
 
 export type BenefitType =
   | 'cash'
@@ -64,6 +65,8 @@ export interface Scheme {
   level: GovLevel;
   /** 'All India' for central schemes. */
   state: string;
+  /** For district-level schemes: the districts where it applies. */
+  districts?: string[];
   categories: CategoryId[];
   benefitTypes: BenefitType[];
   description: LText;
@@ -138,4 +141,67 @@ export interface ChatMessage {
   role: 'user' | 'ai';
   text: string;
   statements?: AIStatement[];
+}
+
+/* ---------- accounts & application tracking ---------- */
+
+/** Saving a scheme is a bookmark; an application is only recorded when the user applies. */
+export type ApplicationStatus =
+  | 'in_progress'
+  | 'submitted'
+  | 'under_verification'
+  | 'docs_required'
+  | 'approved'
+  | 'rejected'
+  | 'disbursed';
+
+export interface StatusEvent {
+  status: ApplicationStatus;
+  at: string;
+  /** 'user' = the citizen updated it; 'demo' = simulated government update (not real). */
+  source: 'user' | 'demo';
+}
+
+export interface Application {
+  schemeId: string;
+  appliedOn: string;
+  reference?: string;
+  status: ApplicationStatus;
+  updatedAt: string;
+  history: StatusEvent[];
+}
+
+export interface Notice {
+  id: string;
+  schemeId: string;
+  status: ApplicationStatus;
+  at: string;
+  read: boolean;
+}
+
+export type Details = Record<string, string | number | undefined>;
+
+/** Account as returned by the account server (never contains the password hash). */
+export interface Account {
+  id: string;
+  fullName: string;
+  username: string;
+  email: string;
+  mobile: string;
+  category: CategoryId;
+  state: string;
+  district: string;
+  preferredLang: Lang;
+  gender?: 'male' | 'female' | 'other';
+  details: Details;
+  registeredAt: string;
+  updatedAt: string;
+  data: AccountData;
+}
+
+export interface AccountData {
+  saved?: string[];
+  checklist?: Record<string, string[]>;
+  applications?: Record<string, Application>;
+  notices?: Notice[];
 }
